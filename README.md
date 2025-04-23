@@ -1,177 +1,188 @@
-# Overview
+# WGS Processing Pipeline Tutorial
 
-RiboMarker is a pipeline for mapping and feature counting of RNA-seq data. It is designed to process ribosome profiling data and identify different types of RNA features, such as rRNA, tRNA, miRNA, lncRNA, snRNA, snoRNA, and protein-coding genes. The pipeline uses bowtie or bowtie2 for mapping. It also provides options for trimming the input FASTQ files and collapsing the reads before alignment.
+## Overview
+This tutorial provides a step-by-step guide for processing Whole Genome Sequencing (WGS) reads, from quality control to variant calling. The workflow includes adapter trimming, reference genome indexing, read alignment, duplicate removal, and somatic variant calling.
 
-The pipeline flows as follows:
+## Prerequisites
+- Linux/Unix-based system
+- At least 16GB RAM (32GB+ recommended for WGS data)
+- At least 500GB free disk space
+- The following tools installed:
+  - Trimmomatic (v0.39+)
+  - BWA (v0.7.17+)
+  - Samtools (v1.13+)
+  - Picard Tools (v2.25.0+)
+  - GATK (v4.2.0+)
 
-1. Trim the input FASTQ files (optional).
-2. Collapse the reads (optional).
-3. Map the reads to the reference genome using bowtie or bowtie2.
-4. Parse the mapping results and count the reads for each feature.
+## Installation
+```bash
+# Install required tools (Ubuntu/Debian)
+sudo apt update
+sudo apt install -y trimmomatic bwa samtools picard-tools
 
-## Single-End Workflow
-![Overview](assets/overview.single.png)
-## Paired-End Workflow
-![Overview](assets/overview.paired.png)
-
-# Installation
-
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/Aimann/rsbalign-priv.git
-    ```
-
-2. Build the Docker image:
-   ```bash
-   docker build -t rsbalign-priv .
-   ```
-
-3. Verify that the Docker image was created successfully:
-   ```bash
-   docker images
-   ```
-
-# Running the test dataset
-
-To run the test dataset, follow these steps:
-
-1. Navigate to the `test_data` directory:
-   ```bash
-   cd test_data
-   ```
-
-2. Modify the `input_dir` parameter in the `config.yaml` file to specify the path to the `test_data` directory:
-   ```yaml
-   input_dir: /path/to/rsb-pub-run/test_data/input/
-   ```
-
-3. Run the pipeline using the wrapper script:
-   ```bash
-   ./run_pipeline.sh config.single.yaml
-   ```
-   This script will run the pipeline using the `config.single.yaml` configuration file.
-
-4. Alternatively, you can run paired-end data using the `config.paired.yaml` configuration file:
-   ```bash
-   ./run_pipeline.sh config.paired.yaml
-   ```
-
-5. The output files will be saved in the specified `output_prefix` directory.
-
-# Output files
-
-The pipeline generates the following output files in the following structure (using `RiboMarker` as an example `output_prefix`):
-
-```
-/path/to/your/data/RiboMarker/
-├── alignments/
-│   ├── sample1.bam
-│   ├── sample2.bam
-│   ├── ...
-├── logs/
-│   ├── trim.log (if trimming is 'True')
-│   ├── map.log
-│   ├── parse.log
-│   ├── ...
-├── db/
-│   ├── species/
-│   │   ├── genome/
-│   │   ├── rrna/
-│   │   ├── mirna/
-│   │   ├── trna/
-│   │   ├── ...
-├── trimmed/ (if trimming is 'True')
-│   ├── sample1.trimmed.fq.gz
-│   ├── sample2.trimmed.fq.gz
-│   ├── ...
-├── collapse/ (if collapse_reads is 'True')
-│   ├── sample1.collapse.fa
-│   ├── sample2.collapse.fa
-│   ├── ...
-├── RiboMarker-trimstats.csv (if trimming is 'True') # Trimming statistics
-├── RiboMarker-mapstats.csv # Mapping statistics
-├── RiboMarker-readcounts.csv # Read counts for all features
-├── RiboMarker-featuretypes.csv # Feature types
-├── RiboMarker-typecounts.csv # RNA type counts
-├── RiboMarker-typelengths.csv # Read lengths for each RNA type
-├── RiboMarker-filtered-readcounts.csv # Read counts filtered by read minimum and fraction samples minimum and for biotypes
-├── ...
+# Install GATK
+wget https://github.com/broadinstitute/gatk/releases/download/4.2.6.1/gatk-4.2.6.1.zip
+unzip gatk-4.2.6.1.zip
+export PATH=$PATH:$(pwd)/gatk-4.2.6.1
 ```
 
-# Usage
+## Workflow
 
-## Required input files
-
-The pipeline requires the following input files:
-
-path_to_data: /path/to/your/data
-sample_sheet: samples.csv
-species: human (e.g., human, mouse, rat)
-fastq_files: raw or trimmed fastq files
-
-The `samples.csv` file should have the following format:
-   ```
-   sample1,group1,sample1.fastq.gz
-   sample2,group1,sample2.fastq.gz
-   sample3,group2,sample3.fastq.gz
-   sample4,group2,sample4.fastq.gz
-   ```
-
-For paired-end reads the `samples.csv` file should have the following format:
-   ```
-   sample1,group1,sample1.R1.fastq.gz,sample1.R2.fastq.gz
-   sample2,group1,sample2.R1.fastq.gz,sample2.R2.fastq.gz
-   sample3,group2,sample3.R1.fastq.gz,sample3.R2.fastq.gz
-   sample4,group2,sample4.R1.fastq.gz,sample4.R2.fastq.gz
-   ```
-
-The sample sheet file should be specified in the `config.yaml` file. Do not include spaces or special characters in the sample IDs or group IDs, only use letters, numbers, and underscores.
-
-## 1. Create a directory for your data and place your input files there.
+### 1. Data Preparation
+Create a working directory for your analysis:
 
 ```bash
-mkdir /path/to/your/data
-```
-This directory should contain the following files:
-   - `samples.csv`: Sample sheet file with the following format: sample_id,group_id,fastq1
-   - `sample1.fastq.gz`, `sample2.fastq.gz`, ...: FASTQ files containing the raw sequencing reads
-```
-/path/to/your/data/
-   ├── samples.csv
-   ├── sample1.fastq.gz
-   ├── sample2.fastq.gz
-   ├── ...
-   ├── pairs.csv (optional)
+mkdir -p wgs_pipeline/{raw_data,trimmed_reads,aligned_reads,processed_bams,variants}
+cd wgs_pipeline
 ```
 
-## 2. Modify the `config.yaml` file to specify the paths to your input files and the desired output directory.
-Required parameters:
-   ```yaml
-   input_dir: /path/to/your/data # Path to the directory containing the input files
-   output_prefix: RiboMarker     # Prefix to use for the output files
-   samples: samples.csv          # Path to the sample sheet file with the following format: sample_id,group_id,fastq1
-   species: human                # Species to use for alignment and feature counting (e.g., human, mouse, rat)
-   trim_fastq: True/False        # Whether to trim the input FASTQ files, True/False
-   collapse_reads: True/False    # Whether to collapse the reads before alignment, True/False
-   paired_end: True/False        # Whether input reads are paired-end or single-end
-   ```
-Optional parameters:
-   ```yaml
-   pairs: pairs.csv              # Optional: Sample pairs for DESeq2 comparisons (relative to input_dir). Format "Group1,Group2"
-   subsample_reads: 0            # Subsample trimmed reads to this amount for each sample. Default 0; include all reads
-   dump_unmapped: True/False     # Whether to dump the unmapped reads to a separate bam file, True/False
-   trim_only: True/False         # Whether to only trim the input FASTQ files, True/False
-   count_ribospike: True/False   # Whether to count RiboSpike reads, True/False
-   multimap: 100                 # Maximum number of multimapping reads to keep
-   read_minimum: 10              # Minimum # of reads a feature must have to be included in the analysis; combined with fraction_minimum
-   fraction_samples_minimum: 0.1 # Minimum fraction of total reads a feature must have to be included in the analysis; combined with read_minimum
-   unique_only: True/False       # Whether to only inlcude uniquely mapping reads in the output, True/False
-   ```
+Download or copy your raw FASTQ files to the `raw_data` directory:
 
-   - Modify the `species` parameter to specify the species to use for alignment and feature counting (e.g., human, mouse, rat).
+```bash
+# Example (replace with your actual data paths)
+cp /path/to/sample_R1.fastq.gz /path/to/sample_R2.fastq.gz raw_data/
+```
 
-   - Modify the `trim_fastq` parameter to specify whether to trim the input FASTQ files. If set to `True`, the pipeline will trim the input FASTQ files using Cutadapt.
+### 2. Quality Control and Adapter Trimming
+Use Trimmomatic to remove adapter sequences and low-quality bases:
 
-   - Modify the `collapse_reads` parameter to specify whether to collapse the reads before alignment. If set to `True`, the pipeline will collapse the reads prior to mapping. This significantly speeds up the mapping process; however it may make downstream bam manipulation more difficult.
+```bash
+trimmomatic PE \
+  raw_data/sample_R1.fastq.gz \
+  raw_data/sample_R2.fastq.gz \
+  trimmed_reads/sample_R1_trimmed.fastq.gz \
+  trimmed_reads/sample_R1_unpaired.fastq.gz \
+  trimmed_reads/sample_R2_trimmed.fastq.gz \
+  trimmed_reads/sample_R2_unpaired.fastq.gz \
+  ILLUMINACLIP:/path/to/adapters/TruSeq3-PE.fa:2:30:10 \
+  LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+```
 
+### 3. Reference Genome Preparation
+Download the reference genome and build BWA index:
 
+```bash
+# Download human reference genome (GRCh38)
+wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+gunzip hg38.fa.gz
+
+# Build BWA index
+bwa index -a bwtsw hg38.fa
+```
+
+### 4. Read Alignment with BWA-MEM
+Align the trimmed reads to the reference genome:
+
+```bash
+# Align reads
+bwa mem -t 8 -M \
+  hg38.fa \
+  trimmed_reads/sample_R1_trimmed.fastq.gz \
+  trimmed_reads/sample_R2_trimmed.fastq.gz \
+  > aligned_reads/sample.sam
+
+# Convert SAM to BAM (more compact)
+samtools view -bS aligned_reads/sample.sam > aligned_reads/sample.bam
+
+# Sort BAM file
+samtools sort -o aligned_reads/sample.sorted.bam aligned_reads/sample.bam
+
+# Index BAM file
+samtools index aligned_reads/sample.sorted.bam
+```
+
+### 5. Mark and Remove Duplicates with Picard
+Identify and mark PCR and optical duplicates:
+
+```bash
+java -jar picard.jar MarkDuplicates \
+  INPUT=aligned_reads/sample.sorted.bam \
+  OUTPUT=processed_bams/sample.dedup.bam \
+  METRICS_FILE=processed_bams/sample.metrics.txt \
+  ASSUME_SORTED=true \
+  VALIDATION_STRINGENCY=LENIENT \
+  REMOVE_DUPLICATES=false
+
+# Index the deduplicated BAM
+samtools index processed_bams/sample.dedup.bam
+```
+
+### 6. Base Quality Score Recalibration (Optional)
+Perform BQSR to correct for systematic technical errors in base quality scores:
+
+```bash
+# Download known sites
+wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf
+wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.idx
+
+# Generate recalibration table
+gatk BaseRecalibrator \
+  -I processed_bams/sample.dedup.bam \
+  -R hg38.fa \
+  --known-sites Homo_sapiens_assembly38.dbsnp138.vcf \
+  -O processed_bams/sample.recal.table
+
+# Apply recalibration
+gatk ApplyBQSR \
+  -I processed_bams/sample.dedup.bam \
+  -R hg38.fa \
+  --bqsr-recal-file processed_bams/sample.recal.table \
+  -O processed_bams/sample.recal.bam
+```
+
+### 7. Variant Calling with Mutect2
+Call somatic variants using Mutect2:
+
+```bash
+# For tumor-only calling
+gatk Mutect2 \
+  -R hg38.fa \
+  -I processed_bams/sample.recal.bam \
+  --germline-resource Homo_sapiens_assembly38.dbsnp138.vcf \
+  -O variants/sample.vcf.gz
+
+# For tumor-normal paired analysis (if applicable)
+gatk Mutect2 \
+  -R hg38.fa \
+  -I tumor_sample.recal.bam \
+  -I normal_sample.recal.bam \
+  -normal normal_sample_name \
+  --germline-resource Homo_sapiens_assembly38.dbsnp138.vcf \
+  -O variants/tumor_vs_normal.vcf.gz
+```
+
+### 8. Filter Variants
+Filter variants to improve quality:
+
+```bash
+# Calculate contamination
+gatk CalculateContamination \
+  -I tumor_sample.pileups.table \
+  -matched normal_sample.pileups.table \
+  -O contamination.table
+
+# Filter variants
+gatk FilterMutectCalls \
+  -R hg38.fa \
+  -V variants/sample.vcf.gz \
+  --contamination-table contamination.table \
+  -O variants/sample.filtered.vcf.gz
+```
+
+## Output Files
+- `trimmed_reads/`: Quality-controlled FASTQ files
+- `aligned_reads/`: Initial SAM/BAM alignment files
+- `processed_bams/`: Deduplicated and recalibrated BAM files
+- `variants/`: VCF files containing called variants
+
+## Tips and Troubleshooting
+- Allocate sufficient memory for larger genomes (human genome requires 16GB+)
+- Use `-t` parameter in BWA to specify number of threads based on your system
+- If limited by disk space, remove intermediate files after each step
+- Consider using FASTQC before and after trimming to assess read quality
+- For production pipelines, consider using workflow managers like Snakemake or Nextflow
+
+## References
+- BWA-MEM: [https://github.com/lh3/bwa](https://github.com/lh3/bwa)
+- Picard Tools: [https://broadinstitute.github.io/picard/](https://broadinstitute.github.io/picard/)
+- GATK Best Practices: [https://gatk.broadinstitute.org/hc/en-us/sections/360007226651-Best-Practices-Workflows](https://gatk.broadinstitute.org/hc/en-us/sections/360007226651-Best-Practices-Workflows)
