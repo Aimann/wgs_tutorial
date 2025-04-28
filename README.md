@@ -63,11 +63,11 @@ Download the reference genome and build BWA index:
 
 ```bash
 # Download human reference genome (GRCh38)
-wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
-gunzip hg38.fa.gz
+wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_47/GRCh38.primary_assembly.genome.fa.gz
+gunzip GRCh38.primary_assembly.genome.fa.gz
 
 # Build BWA index
-bwa index -a bwtsw hg38.fa
+bwa index -a bwtsw GRCh38.primary_assembly.genome.fa
 ```
 
 ### 4. Read Alignment with BWA-MEM
