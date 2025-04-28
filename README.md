@@ -17,13 +17,7 @@ This tutorial provides a step-by-step guide for processing Whole Genome Sequenci
 ## Installation
 ```bash
 # Install required tools (Ubuntu/Debian)
-sudo apt update
-sudo apt install -y trimmomatic bwa samtools picard-tools
-
-# Install GATK
-wget https://github.com/broadinstitute/gatk/releases/download/4.2.6.1/gatk-4.2.6.1.zip
-unzip gatk-4.2.6.1.zip
-export PATH=$PATH:$(pwd)/gatk-4.2.6.1
+conda create -c bioconda -c conda-forge --name heini bwa samtools picard zlib
 ```
 
 ## Workflow
