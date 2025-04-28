@@ -89,7 +89,7 @@ samtools index aligned_reads/sample.sorted.bam
 Identify and mark PCR and optical duplicates:
 
 ```bash
-java -jar picard.jar MarkDuplicates \
+picard MarkDuplicates \
   INPUT=aligned_reads/sample.sorted.bam \
   OUTPUT=processed_bams/sample.dedup.bam \
   METRICS_FILE=processed_bams/sample.metrics.txt \
