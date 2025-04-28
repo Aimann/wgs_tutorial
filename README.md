@@ -85,6 +85,30 @@ samtools sort -o aligned_reads/sample.sorted.bam aligned_reads/sample.bam
 samtools index aligned_reads/sample.sorted.bam
 ```
 
+```bash
+# Align reads
+bwa mem -t 8 -M \
+  -R '@RG\tID:unique_readgroup_id\tSM:your_sample_name\tPL:sequencing_platform\tLB:your_library_id\tPU:unique_platform_unit'
+  hg38.fa \
+  trimmed_reads/sample_R1_trimmed.fastq.gz \
+  trimmed_reads/sample_R2_trimmed.fastq.gz \
+  > aligned_reads/sample.sam
+
+# Convert SAM to BAM (more compact)
+samtools view -bS aligned_reads/sample.sam > aligned_reads/sample.bam
+
+# Sort BAM file
+samtools sort -o aligned_reads/sample.sorted.bam aligned_reads/sample.bam
+
+# Index BAM file
+samtools index aligned_reads/sample.sorted.bam
+```
+Example -R
+```bash
+-R '@RG\tID:L001\tSM:Sample1\tLB:WGSH\tPL:ILLUMINA'
+```
+
+
 ### 5. Mark and Remove Duplicates with Picard
 Identify and mark PCR and optical duplicates:
 
