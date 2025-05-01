@@ -26,7 +26,7 @@ conda create -c bioconda -c conda-forge --name heini bwa samtools picard zlib
 Create a working directory for your analysis:
 
 ```bash
-mkdir -p wgs_pipeline/{raw_data,trimmed_reads,aligned_reads,processed_bams,variants}
+mkdir -p wgs_pipeline/{alignments,variants,genome}
 cd wgs_pipeline
 ```
 
@@ -57,6 +57,7 @@ Download the reference genome and build BWA index:
 
 ```bash
 # Download human reference genome (GRCh38)
+cd genome
 wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_47/GRCh38.primary_assembly.genome.fa.gz
 gunzip GRCh38.primary_assembly.genome.fa.gz
 
