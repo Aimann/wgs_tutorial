@@ -148,6 +148,19 @@ gatk ApplyBQSR \
   --bqsr-recal-file processed_bams/sample.recal.table \
   -O processed_bams/sample.recal.bam
 ```
+### 7. Variant Calling with bcftools
+Call variants with bcftools:
+```bash
+bcftools mpileup -f reference.fa alignments.bam | bcftools call -mv -Ob -o calls.bcf
+bcftools mpileup -f reference.fa alignments.bam | bcftools call -mv -Ov -o calls.vcf
+
+```
+
+### 8. Filter Variants
+Filter variants to improve quality:
+
+
+bcftools mpileup -f reference.fa alignments.bam | bcftools call -mv -Ob -o calls.bcf
 
 ### 7. Variant Calling with Mutect2
 Call somatic variants using Mutect2:
