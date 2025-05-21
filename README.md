@@ -71,6 +71,22 @@ bwa index -a bwtsw GRCh38.primary_assembly.genome.fa
 ```
 
 ### 3. Read Alignment with BWA-MEM
+
+Navigate back to your main `wgs` directory
+
+if you are already in the `genome` directory
+```bash
+cd ..
+```
+
+OR 
+
+if you are anywhere else
+```bash
+cd /path/to/wgs
+```
+
+
 Align the trimmed reads to the reference genome:
 
 ```bash
