@@ -70,7 +70,7 @@ Build the bwa index for aligning the reads to the human reference genome
 bwa index -a bwtsw GRCh38.primary_assembly.genome.fa
 ```
 
-### 3. Read Alignment with BWA-MEM
+### 4. Read Alignment with BWA-MEM
 
 Navigate back to your main `wgs` directory
 
@@ -86,53 +86,55 @@ if you are anywhere else
 cd /path/to/wgs
 ```
 
-
 Align the trimmed reads to the reference genome:
 
 ```bash
-# Align reads
 bwa mem -t 8 -M \
   -R '@RG\tID:unique_readgroup_id\tSM:your_sample_name\tPL:sequencing_platform\tLB:your_library_id\tPU:unique_platform_unit'
-  hg38.fa \
-  trimmed_reads/sample_R1_trimmed.fastq.gz \
-  trimmed_reads/sample_R2_trimmed.fastq.gz \
-  > aligned_reads/sample.sam
-
-# Convert SAM to BAM (more compact)
-samtools view -bS aligned_reads/sample.sam > aligned_reads/sample.bam
-
-# Sort BAM file
-samtools sort -o aligned_reads/sample.sorted.bam aligned_reads/sample.bam
-
-# Index BAM file
-samtools index aligned_reads/sample.sorted.bam
+  genome/GRCh38.primary_assembly.genome.fa \
+  fastq/sample_R1_trimmed.fq.gz \
+  fastq/sample_R2_trimmed.fq.gz \
+  > alignments/sample.sam
 ```
+
 Example -R
 ```bash
 -R '@RG\tID:L001\tSM:Sample1\tLB:WGSH\tPL:ILLUMINA'
 ```
 
-### 4. Mark and Remove Duplicates with Picard
+# Convert SAM to BAM
+```bash
+samtools view -bS alignments/sample.sam > alignments/sample.bam
+```
+
+# Sort BAM file
+```bash
+samtools sort -o alignments/sample.sorted.bam alignments/sample.bam
+```
+
+# Index BAM file
+```bash
+samtools index alignments/sample.sorted.bam
+```
+
+### 5. Mark and Remove Duplicates with Picard
 Identify and mark PCR and optical duplicates:
 
 ```bash
 picard MarkDuplicates \
-    I=${OUTPUT_DIR}/${SAMPLE}.sorted.bam \
-    O=${OUTPUT_DIR}/${SAMPLE}.dedup.bam \
-    M=${OUTPUT_DIR}/${SAMPLE}.metrics.txt \
+    I=alignments/${SAMPLE}.sorted.bam \
+    O=alignments/${SAMPLE}.dedup.bam \
+    M=alignments/${SAMPLE}.metrics.txt \
     REMOVE_DUPLICATES=true
-
-# Index the deduplicated BAM
-samtools index processed_bams/sample.dedup.bam
 ```
 
-### 5. Variant Calling with bcftools
+### 6. Variant Calling with bcftools
 Call variants with bcftools:
 ```bash
-bcftools mpileup -f reference.fa alignments.bam | bcftools call -mv -Ov -o calls.vcf
+bcftools mpileup -f genome/GRCh38.primary_assembly.genome.fa ${SAMPLE}.dedup.bam | bcftools call -mv -Ov -o calls.vcf
 ```
 
-### 6. Filter Variants
+### 7. Filter Variants
 Filter variants to improve quality:
 bcftools view -i 'QUAL>=20' calls.vcf > calls.filtered.vcf
 ```bash
