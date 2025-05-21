@@ -102,17 +102,17 @@ Example -R
 -R '@RG\tID:L001\tSM:Sample1\tLB:WGSH\tPL:ILLUMINA'
 ```
 
-# Convert SAM to BAM
+Convert SAM to BAM
 ```bash
 samtools view -bS alignments/sample.sam > alignments/sample.bam
 ```
 
-# Sort BAM file
+Sort BAM file
 ```bash
 samtools sort -o alignments/sample.sorted.bam alignments/sample.bam
 ```
 
-# Index BAM file
+Index BAM file
 ```bash
 samtools index alignments/sample.sorted.bam
 ```
