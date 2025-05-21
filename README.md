@@ -16,8 +16,7 @@ This tutorial provides a step-by-step guide for processing Whole Genome Sequenci
 
 ## Installation
 ```bash
-# Install required tools (Ubuntu/Debian)
-conda create -c bioconda -c conda-forge --name heini bwa samtools picard zlib bcftools openssl=1.0
+conda create -c conda-forge --name heini bwa samtools picard zlib bcftools openssl=1.0
 ```
 
 ## Workflow
