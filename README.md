@@ -6,6 +6,7 @@ This tutorial provides a step-by-step guide for processing Whole Genome Sequenci
 ## Installation
 
 ### 1. Set up conda environment with required tools
+
 ```bash
 conda create -c conda-forge -c bioconda --name wgs bwa samtools bedtools picard zlib bcftools openssl=1.0 
 ```
@@ -14,16 +15,19 @@ conda create -c conda-forge -c bioconda --name wgs bwa samtools bedtools picard 
 
 ### 2. Data Preparation
 Navigate to a directory of your choice to perform the analysis
+
 ```bash
 cd /path/to/directory
 ```
 
 Create a working directory for your analysis:
+
 ```bash
 mkdir -p wgs/{alignments,genome,fastq}
 ```
 
 Move into the newly created directory
+
 ```bash
 cd wgs
 ```
@@ -41,16 +45,28 @@ Download or copy your FASTQ files to the `fastq` directory:
 cp /path/to/sample_R1.fastq.gz /path/to/sample_R2.fastq.gz fastq/
 ```
 
-### 2. Reference Genome Preparation
-Download the reference genome and build BWA index:
+### 3. Reference Genome Preparation
+
+Navigate to the `genome` directory
+```bash
+cd genome
+```
+
+Download the latest human reference genome from GENCODE (hg38/GRCh38)
 
 ```bash
-# Download human reference genome (GRCh38)
-cd genome
 wget https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_47/GRCh38.primary_assembly.genome.fa.gz
-gunzip GRCh38.primary_assembly.genome.fa.gz
+```
 
-# Build BWA index
+Unzip the file
+
+```bash
+gunzip GRCh38.primary_assembly.genome.fa.gz
+```
+
+Build the bwa index for aligning the reads to the human reference genome
+
+```bash
 bwa index -a bwtsw GRCh38.primary_assembly.genome.fa
 ```
 
