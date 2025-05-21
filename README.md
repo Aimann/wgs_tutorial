@@ -4,25 +4,41 @@
 This tutorial provides a step-by-step guide for processing Whole Genome Sequencing (WGS) reads, from quality control to variant calling. The workflow includes adapter trimming, reference genome indexing, read alignment, duplicate removal, and somatic variant calling.
 
 ## Installation
+
+### 1. Set up conda environment with required tools
 ```bash
-conda create -c conda-forge --name heini bwa samtools picard zlib bcftools openssl=1.0
+conda create -c conda-forge -c bioconda --name wgs bwa samtools bedtools picard zlib bcftools openssl=1.0 
 ```
 
 ## Workflow
 
-### 1. Data Preparation
-Create a working directory for your analysis:
-
+### 2. Data Preparation
+Navigate to a directory of your choice to perform the analysis
 ```bash
-mkdir -p wgs_pipeline/{alignments,variants,genome}
-cd wgs_pipeline
+cd /path/to/directory
 ```
 
-Download or copy your raw FASTQ files to the `raw_data` directory:
+Create a working directory for your analysis:
+```bash
+mkdir -p wgs/{alignments,genome,fastq}
+```
 
+Move into the newly created directory
+```bash
+cd wgs
+```
+Note the path to your fastq files with your input reads
 ```bash
 # Example (replace with your actual data paths)
-cp /path/to/sample_R1.fastq.gz /path/to/sample_R2.fastq.gz raw_data/
+/path/to/sample_R1.fastq.gz /path/to/sample_R2.fastq.gz
+```
+
+OR
+
+(optional)
+Download or copy your FASTQ files to the `fastq` directory:
+```bash
+cp /path/to/sample_R1.fastq.gz /path/to/sample_R2.fastq.gz fastq/
 ```
 
 ### 2. Reference Genome Preparation
